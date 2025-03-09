@@ -19,7 +19,7 @@ def get_tasks():
 ## day1 Task
 @app.route('/about')
 def about():
-    return jsonify({"author":"guna","version":"1.0"})
+    return jsonify({"author":"guna","version":"1.0.0"})
 
 if __name__=="__main__":
     app.run(debug=True)
