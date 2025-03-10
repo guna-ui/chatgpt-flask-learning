@@ -27,17 +27,29 @@ def get_task(taskid):
           return jsonify(task)
   return jsonify({"error":"Task not found"}),404
 
-@app.route('/tasks')
+@app.route('/tasks',methods=['Get'])
 def get_tasks():
-    status=request.args.get("status")
-    get_date=request.args.get("due_date")
-    if status:
-        filtered_status=[task for task in tasks if task["status"]==status]
-        return jsonify(filtered_status)
-    elif get_date :
-        filtered_date=[task for task in tasks if task["due_date"]==int(get_date)]
-        return jsonify(filtered_date)
-    return jsonify(tasks)
+    sort_by=request.args.get("sort_by","id")
+    order  =request.args.get("order","asc")
+    valid_fields = ["id", "title", "status", "due_date"]
+    if sort_by not in valid_fields:
+        return jsonify({"message":f"invalid sortby field.choose from {valid_fields}"}),404
+    reverse=order.lower()=="desc"
+    sorted_tasks=sorted(tasks,key=lambda x:x[sort_by],reverse=reverse)
+    # return jsonify(sorted_tasks)
+
+    page = int(request.args.get("page", 1))
+    limit = int(request.args.get("limit", 5))
+    start = (page - 1) * limit
+    end = start + limit
+    paginated_tasks = sorted_tasks[start:end]
+    return jsonify({
+        "total_tasks": len(tasks),
+        "page": page,
+        "limit": limit,
+        "tasks": paginated_tasks
+    })
+    
 
 @app.route('/tasks/title/<string:title>')
 def get_task_title(title):
