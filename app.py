@@ -94,6 +94,27 @@ def multiple_tasks():
     tasks.extend(new_tasks)  # Add new tasks to global list
     return jsonify({"message": "Tasks added successfully", "tasks": new_tasks}), 201
 
+@app.route("/tasks/<int:taskid>",methods=["PUT"])
+def update_task(taskid):
+    data=request.get_json()
+    task=next((task for task in tasks if task["id"]==taskid),None)
+    if not  task:
+        return jsonify({"message":"taskid is not  available"})
+    if not any(key in data for key in ["title", "status", "due_date"]):
+        return jsonify({"message": "At least one field (title, status, due_date) required"}), 400
+    task["title"]=data.get("title",task["title"])
+    task["status"]=data.get("status",task["status"])
+    task["due_date"]=data.get("due_date",task["due_date"])
+    return jsonify({"message": "Task updated successfully", "task": task})
+
+@app.route('/tasks/<int:task_id>',methods=['DELETE'])
+def delete_task(task_id):
+    global tasks
+    task=next((task for task in tasks if task["id"]==task_id),None)
+    if not  task:
+        return jsonify({"message":"taskid is not  available"})
+    tasks=[task for task in tasks if task["id"] != task_id]
+    return jsonify({"message": f"Task {task_id} deleted successfully"})
        
 if __name__=="__main__":
     app.run(debug=True)
