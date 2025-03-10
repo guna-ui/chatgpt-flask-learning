@@ -46,7 +46,54 @@ def get_task_title(title):
             return jsonify(task)
     return jsonify({"error":"Task not found"}),404
 
+@app.route('/tasks',methods=["POST"])
+def add_task():
+    data=request.get_json()
+    if not data or "title" not in data:
+        return jsonify({"error":"Title is required"}),404
+    if any(task["title"].lower()==data["title"].lower() for task in tasks):
+        return jsonify({"error": "Task with this title already exists"}), 400
+    new_task={
+        "id":len(tasks)+1,
+        "name":data["title"],
+        "status":data.get("status","pending"),
+        "due_date":data.get("due_date",2025)
+    }
+    tasks.append(new_task)
+    return jsonify(new_task),201
 
+@app.route("/tasks/bulk", methods=["POST"])
+def multiple_tasks():
+    data = request.get_json()  # Get JSON data from request
 
+    if not isinstance(data, list):  # Ensure input is a list
+        return jsonify({"message": "Expected a list of tasks"}), 400
+
+    existing_titles = {task["title"].lower() for task in tasks}  # Track existing task titles
+    new_tasks = []  # Store new tasks
+
+    for d in data:
+        if "title" not in d:
+            return jsonify({"message": "Each task must have a title"}), 400
+
+        if d["title"].lower() in existing_titles:  # Skip duplicates
+            continue  
+
+        new_task = {
+            "id": len(tasks) + len(new_tasks) + 1,
+            "title": d["title"],
+            "status": d.get("status", "pending"),
+            "due_date": d.get("due_date", 2023),
+        }
+        new_tasks.append(new_task)
+        existing_titles.add(d["title"].lower())  # Track new titles
+
+    if not new_tasks:
+        return jsonify({"message": "No new tasks added"}), 400
+
+    tasks.extend(new_tasks)  # Add new tasks to global list
+    return jsonify({"message": "Tasks added successfully", "tasks": new_tasks}), 201
+
+       
 if __name__=="__main__":
     app.run(debug=True)
