@@ -1,11 +1,15 @@
 from flask import Flask,jsonify,request
+import math
 
 app=Flask(__name__)
 
-tasks=[
-        {"id": 1, "title": "Buy groceries", "status": "pending","due_date":2025},
-        {"id": 2, "title": "Finish Flask project", "status": "in-progress","due_date":2028},
-    ]
+tasks = [
+    {"id": 1, "title": "Buy groceries", "status": "pending", "due_date": "2025-03-15"},
+    {"id": 2, "title": "Finish Flask project", "status": "in-progress", "due_date": "2025-03-10"},
+    {"id": 3, "title": "Go to the gym", "status": "completed", "due_date": "2025-03-20"},
+    {"id": 4, "title": "Read a book", "status": "pending", "due_date": "2025-03-05"},
+    {"id": 5, "title": "Write blog post", "status": "in-progress", "due_date": "2025-03-25"}
+]
 
 #define a API route
 
@@ -29,26 +33,46 @@ def get_task(taskid):
 
 @app.route('/tasks',methods=['Get'])
 def get_tasks():
-    sort_by=request.args.get("sort_by","id")
-    order  =request.args.get("order","asc")
-    valid_fields = ["id", "title", "status", "due_date"]
+    sort_by=request.args.get('sort_by',"id")
+    order  =request.args.get('order','asc')
+    page   =request.args.get('page',1,type=int)
+    limit  =request.args.get('limit',5,type=int)
+    status =request.args.get('status')
+    due_before=request.args.get('due_before')
+    
+    if status=="pending":
+        filtered_status =[task for task in tasks if task["status"]==status]
+        return jsonify(filtered_status)
+    elif due_before:
+        filtered_date=[task for task in tasks if task["due_date"]<due_before]
+        return jsonify(filtered_date)
+   
+    valid_fields=["id","title","status","due_date"]
     if sort_by not in valid_fields:
-        return jsonify({"message":f"invalid sortby field.choose from {valid_fields}"}),404
+        return jsonify({"message":f"given field ${sort_by} not there in our list"})
     reverse=order.lower()=="desc"
-    sorted_tasks=sorted(tasks,key=lambda x:x[sort_by],reverse=reverse)
-    # return jsonify(sorted_tasks)
-
-    page = int(request.args.get("page", 1))
-    limit = int(request.args.get("limit", 5))
-    start = (page - 1) * limit
-    end = start + limit
-    paginated_tasks = sorted_tasks[start:end]
+    sorted_order=sorted(tasks,key=lambda x :x[sort_by],reverse=reverse)
+    
+    total_tasks=len(sorted_order)
+    total_pages=math.ceil(total_tasks/limit)
+    
+    if page <1 and page > total_pages:
+       return jsonify({"message": "Invalid page number"}), 400
+    
+    start_index=(page - 1)*limit
+    end_index  = start_index + limit
+    paginated_tasks=sorted_order[start_index:end_index]
+    
     return jsonify({
-        "total_tasks": len(tasks),
         "page": page,
         "limit": limit,
+        "total_tasks": total_tasks,
+        "total_pages": total_pages,
         "tasks": paginated_tasks
     })
+    
+
+    
     
 
 @app.route('/tasks/title/<string:title>')
